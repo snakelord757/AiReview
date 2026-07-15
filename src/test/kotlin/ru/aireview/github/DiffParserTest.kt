@@ -1,6 +1,7 @@
 package ru.aireview.github
 
 import ru.aireview.review.DiffParser
+import ru.aireview.review.AddedLine
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,6 +21,7 @@ class DiffParserTest {
 
         assertEquals(setOf(11, 12), parsed.changedRightLines)
         assertEquals(setOf(10, 13), parsed.contextRightLines)
+        assertEquals(listOf(AddedLine(11, "new"), AddedLine(12, "extra")), parsed.addedLines)
         assertEquals(listOf("new", "extra"), parsed.addedTextLines)
     }
 }

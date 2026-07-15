@@ -75,7 +75,7 @@ class ReviewService(
                 repository,
                 number,
                 CreateReviewRequest(
-                    body = "AI review based on `docs/**/*.md` (${comments.size} finding(s)).",
+                    body = "AI review завершено: замечания оставлены на соответствующих строках изменений.",
                     comments = comments,
                 ),
                 installationId,

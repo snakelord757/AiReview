@@ -1,11 +1,13 @@
 package ru.aireview.review
 
+data class AddedLine(val number: Int, val text: String)
+
 data class ParsedPatch(
     val changedRightLines: Set<Int>,
     val contextRightLines: Set<Int>,
-    val addedTextLines: List<String>,
+    val addedLines: List<AddedLine>,
 ) {
-    val commentableLines: Set<Int> get() = changedRightLines + contextRightLines
+    val addedTextLines: List<String> get() = addedLines.map { it.text }
 }
 
 object DiffParser {
@@ -14,7 +16,7 @@ object DiffParser {
     fun parse(patch: String): ParsedPatch {
         val changed = linkedSetOf<Int>()
         val context = linkedSetOf<Int>()
-        val addedText = mutableListOf<String>()
+        val addedLines = mutableListOf<AddedLine>()
         var rightLine: Int? = null
         patch.lineSequence().forEach { line ->
             val match = hunk.find(line)
@@ -24,7 +26,7 @@ object DiffParser {
                 when {
                     line.startsWith("+") -> {
                         changed += rightLine
-                        addedText += line.removePrefix("+")
+                        addedLines += AddedLine(rightLine, line.removePrefix("+"))
                         rightLine += 1
                     }
                     line.startsWith("-") && !line.startsWith("---") -> Unit
@@ -36,6 +38,6 @@ object DiffParser {
                 }
             }
         }
-        return ParsedPatch(changed, context, addedText)
+        return ParsedPatch(changed, context, addedLines)
     }
 }
