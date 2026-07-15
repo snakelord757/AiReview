@@ -1,5 +1,6 @@
 package ru.aireview.github
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -21,6 +22,7 @@ interface GitHubTokenProvider { suspend fun token(installationId: Long?): String
 
 class GitHubAuth(private val config: GitHubConfig, private val http: HttpClient) : GitHubTokenProvider {
     private data class CachedToken(val value: String, val expiresAt: Instant)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private data class InstallationToken(@JsonProperty("token") val token: String, @JsonProperty("expires_at") val expiresAt: Instant)
     private val cache = ConcurrentHashMap<Long, CachedToken>()
 
