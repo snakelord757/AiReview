@@ -22,7 +22,7 @@ data class AppConfig(
             deepSeek = DeepSeekConfig(
                 baseUrl = env["DEEPSEEK_BASE_URL"] ?: "https://api.deepseek.com",
                 apiKey = env.required("DEEPSEEK_API_KEY"),
-                model = env["DEEPSEEK_MODEL"] ?: "deepseek-chat",
+                model = env["DEEPSEEK_MODEL"] ?: "deepseek-v4-flash",
                 maxPatchChars = env.int("MAX_PATCH_CHARS", 60_000),
             ),
             embeddings = EmbeddingConfig(

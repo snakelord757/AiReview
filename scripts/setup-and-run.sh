@@ -170,7 +170,7 @@ write_env() {
         fi
         printf "DEEPSEEK_API_KEY='%s'\n" "$deepseek_key"
         printf "DEEPSEEK_BASE_URL='https://api.deepseek.com'\n"
-        printf "DEEPSEEK_MODEL='deepseek-chat'\n"
+        printf "DEEPSEEK_MODEL='deepseek-v4-flash'\n"
         printf "OLLAMA_EMBED_MODEL='%s'\n" "$DEFAULT_MODEL"
         printf "RAG_TOP_K=5\nRAG_CHUNK_SIZE=1800\nRAG_CHUNK_OVERLAP=200\n"
         printf "MAX_PATCH_CHARS=60000\nPORT=8080\n"

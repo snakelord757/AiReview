@@ -85,7 +85,7 @@ GitHub App нужно установить в репозитории. Серви
 | `GITHUB_API_URL` | нет | `https://api.github.com` |
 | `DEEPSEEK_API_KEY` | да | — |
 | `DEEPSEEK_BASE_URL` | нет | `https://api.deepseek.com` |
-| `DEEPSEEK_MODEL` | нет | `deepseek-chat` |
+| `DEEPSEEK_MODEL` | нет | `deepseek-v4-flash` |
 | `OLLAMA_BASE_URL` | нет | `http://ollama:11434` |
 | `OLLAMA_EMBED_MODEL` | нет | `embeddinggemma:300m` |
 | `RAG_INDEX_DIR` | нет | `data/indexes` |

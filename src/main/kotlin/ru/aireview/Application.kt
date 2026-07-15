@@ -1,9 +1,6 @@
 package ru.aireview
 
-import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
@@ -19,6 +16,7 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import ru.aireview.config.AppConfig
+import ru.aireview.config.configureAiReviewJson
 import ru.aireview.github.*
 import ru.aireview.rag.*
 import ru.aireview.review.*
@@ -33,17 +31,14 @@ fun main() {
 
 fun Application.module(config: AppConfig = AppConfig.fromEnvironment()) {
     val log = LoggerFactory.getLogger("AiReview")
-    val mapper = ObjectMapper()
-        .registerModule(KotlinModule.Builder().build())
-        .registerModule(JavaTimeModule())
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    val mapper = ObjectMapper().configureAiReviewJson()
 
     install(ContentNegotiation) {
-        jackson { registerModule(KotlinModule.Builder().build()); registerModule(JavaTimeModule()) }
+        jackson { configureAiReviewJson() }
     }
     val http = HttpClient(CIO) {
         install(ClientContentNegotiation) {
-            jackson { registerModule(KotlinModule.Builder().build()); registerModule(JavaTimeModule()) }
+            jackson { configureAiReviewJson() }
         }
         expectSuccess = true
         engine { requestTimeout = 120_000 }
