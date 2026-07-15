@@ -1,0 +1,41 @@
+services:
+  ai-review:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      RAG_INDEX_DIR: /app/data/indexes
+    ports:
+      - "8080:8080"
+    volumes:
+      - rag-index:/app/data/indexes
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:0.31.2
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ollama-init:
+    image: ollama/ollama:0.31.2
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-embeddinggemma:300m}
+    entrypoint: ["/bin/sh", "-c", "ollama pull $${OLLAMA_EMBED_MODEL:-embeddinggemma:300m}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  rag-index:
+  ollama-data:

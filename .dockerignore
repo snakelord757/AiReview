@@ -1,0 +1,9 @@
+.git
+.gradle
+.gradle-bootstrap
+build
+data
+.idea
+.env
+gradle-*-bin.zip
+
