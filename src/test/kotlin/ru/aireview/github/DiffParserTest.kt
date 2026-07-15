@@ -20,6 +20,6 @@ class DiffParserTest {
 
         assertEquals(setOf(11, 12), parsed.changedRightLines)
         assertEquals(setOf(10, 13), parsed.contextRightLines)
+        assertEquals(listOf("new", "extra"), parsed.addedTextLines)
     }
 }
-

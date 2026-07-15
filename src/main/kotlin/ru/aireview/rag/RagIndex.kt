@@ -22,14 +22,19 @@ class RagIndex(
     suspend fun prepare(repository: String, revision: String, docs: List<DocumentationFile>): StoredIndex {
         val file = indexFile(repository)
         synchronized(locks.computeIfAbsent(repository) { Any() }) {
-            load(file)?.takeIf { it.revision == revision && it.model == embeddingConfig.model }?.let { return it }
+            load(file)?.takeIf { it.isCurrent(revision) }?.let { return it }
         }
 
         val chunks = chunker.chunk(docs)
-        val vectors = embeddings.embed(chunks.map { "${it.path}\n${it.text}" })
-        val index = StoredIndex(revision, embeddingConfig.model, chunks.zip(vectors) { chunk, vector -> IndexedChunk(chunk, vector) })
+        val vectors = embeddings.embed(chunks.map(::documentEmbeddingInput))
+        val index = StoredIndex(
+            revision = revision,
+            model = embeddingConfig.model,
+            formatVersion = INDEX_FORMAT_VERSION,
+            chunks = chunks.zip(vectors) { chunk, vector -> IndexedChunk(chunk, vector) },
+        )
         synchronized(locks.computeIfAbsent(repository) { Any() }) {
-            load(file)?.takeIf { it.revision == revision && it.model == embeddingConfig.model }?.let { return it }
+            load(file)?.takeIf { it.isCurrent(revision) }?.let { return it }
             save(file, index)
         }
         return index
@@ -37,12 +42,24 @@ class RagIndex(
 
     suspend fun search(index: StoredIndex, query: String): List<RetrievedChunk> {
         if (index.chunks.isEmpty()) return emptyList()
-        val queryVector = embeddings.embed(listOf(query)).single()
-        return index.chunks.asSequence()
-            .map { RetrievedChunk(it.chunk, cosine(queryVector, it.embedding)) }
+        val queryVector = embeddings.embed(listOf("task: code review policy retrieval | query: $query")).single()
+        val ranked = index.chunks.asSequence()
+            .map {
+                val vectorScore = cosine(queryVector, it.embedding)
+                val lexicalScore = lexicalScore(query, "${it.chunk.path} ${it.chunk.heading} ${it.chunk.text}")
+                RetrievedChunk(
+                    chunk = it.chunk,
+                    score = vectorScore + LEXICAL_WEIGHT * lexicalScore,
+                    vectorScore = vectorScore,
+                    lexicalScore = lexicalScore,
+                    pinned = isPolicyDocument(it.chunk.path),
+                )
+            }
             .sortedByDescending { it.score }
-            .take(config.topK)
             .toList()
+        val pinned = ranked.filter { it.pinned }.take(MAX_PINNED_CHUNKS)
+        val pinnedIds = pinned.mapTo(hashSetOf()) { it.chunk.id }
+        return pinned + ranked.asSequence().filterNot { it.chunk.id in pinnedIds }.take(config.topK)
     }
 
     private fun cosine(a: List<Double>, b: List<Double>): Double {
@@ -74,4 +91,37 @@ class RagIndex(
 
     private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
         .digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
+
+    private fun StoredIndex.isCurrent(revision: String): Boolean =
+        this.revision == revision && model == embeddingConfig.model && formatVersion == INDEX_FORMAT_VERSION
+
+    companion object {
+        private const val INDEX_FORMAT_VERSION = 2
+        private const val LEXICAL_WEIGHT = 0.9
+        private const val MAX_PINNED_CHUNKS = 8
+    }
 }
+
+internal fun documentEmbeddingInput(chunk: DocumentChunk): String =
+    "title: ${chunk.path} ${chunk.heading} | text: ${chunk.text}"
+
+internal fun isPolicyDocument(path: String): Boolean {
+    val name = path.substringAfterLast('/').lowercase()
+    return POLICY_MARKERS.any(name::contains)
+}
+
+internal fun lexicalScore(query: String, document: String): Double {
+    val queryTerms = lexicalTerms(query)
+    if (queryTerms.isEmpty()) return 0.0
+    val documentTerms = lexicalTerms(document)
+    val overlap = queryTerms.count(documentTerms::contains).toDouble() / queryTerms.size
+    val operatorMatches = IMPORTANT_OPERATORS.count { it in query && it in document }
+    return overlap + operatorMatches * 1.5
+}
+
+private fun lexicalTerms(text: String): Set<String> =
+    TERM.findAll(text.lowercase()).map { it.value }.filter { it.length > 1 }.toSet()
+
+private val TERM = Regex("[\\p{L}\\p{N}_]+")
+private val IMPORTANT_OPERATORS = setOf("!!", "?:", "lateinit")
+private val POLICY_MARKERS = setOf("code-style", "codestyle", "style", "guideline", "standard", "rule", "security")
