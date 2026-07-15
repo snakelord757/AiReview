@@ -19,6 +19,7 @@ class ReviewService(
         require(repository.isNotBlank() && number > 0 && headSha.isNotBlank()) { "Incomplete pull_request webhook" }
 
         log.info("Starting review repository={} pull={} sha={}", repository, number, headSha)
+        github.createIssueComment(repository, number, "Начинаю ревью", installationId)
         val allFiles = github.pullRequestFiles(repository, number, installationId)
         val files = allFiles.filter { it.patch != null && it.status != "removed" }
         val skippedFiles = allFiles.filter { it.patch == null && it.status != "removed" }.map { it.filename }
